@@ -18,27 +18,25 @@ function ShowModInput({userArr, setUserArr, setShowing, newI}) {
   const showNewEmail = (e) => {
     setNewEmail(e.target.value);
   }
-  // const modUser = userArr.map((item, i) => {
-  //   i === newI ? setUserArr([ {name: newName, age: newAge, email: newEmail } ,...userArr]) : userArr
-  // })
+  
   const modUser = userArr.find( (item, i) => i === newI )
-  const modInput = { name: newName, age: newAge, email: newEmail
-  }
-  const changeUser = {...modUser, name: newName,
-    age: newAge,
-    email: newEmail}
+  
+  
   
   
 
 
   const newSubmit = (e) => {
     e.preventDefault();
-    const filter = userArr.filter((item, i) => i != newI)
+    
+    
+    setUserArr(userArr.map( (item) => 
+      item.id === modUser.id ? { name: newName, age: newAge, email: newEmail } : item
+      
+    ))
+
     console.log(userArr)
-    console.log(filter)
-    console.log(userArr)
-    setUserArr([changeUser, ...userArr])
-    setUserArr(filter)
+    
     setShowing((prev)=>!prev)
     
     
