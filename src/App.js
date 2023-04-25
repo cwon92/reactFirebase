@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import shortId from 'shortid'
+import { db } from './firebase'
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
 // import { useParams } from 'react-router-dom'
 
 
@@ -22,20 +24,13 @@ function ShowModInput({userArr, setUserArr, setShowing, newI}) {
   const modUser = userArr.find( (item, i) => i === newI )
   
   
-  
-  
-
-
   const newSubmit = (e) => {
     e.preventDefault();
     
     
     setUserArr(userArr.map( (item) => 
       item.id === modUser.id ? { name: newName, age: newAge, email: newEmail } : item
-      
     ))
-
-    console.log(userArr)
     
     setShowing((prev)=>!prev)
     
@@ -61,6 +56,9 @@ function App() {
   const [email, setEmail] = useState("");
   const [userArr, setUserArr] = useState([]);
   const [showing, setShowing] = useState(false);
+  // const [cloudArr, setCloudArr] = useState([]);
+
+
   const onClick = () => setShowing((prev) => !prev)
 
   const showName = (event) => {
@@ -73,28 +71,39 @@ function App() {
     setEmail(event.target.value)
   }
 
-  const delUserBtn = (index) => {
+  const delUserBtn =  async (index) => {
     setUserArr(userArr.filter((item, i) => i !== index))
+    await deleteDoc(doc(db, "userList", "DC"));
   }
 
+  
+  
 
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    setUserArr([ { id: shortId.generate(), name: name, age: age, email: email }, ...userArr,])
+    // setUserArr([ { id: shortId.generate(), name: name, age: age, email: email }, ...userArr,])
     setName("");
     setAge("");
     setEmail("");
     
-    console.log('메인인풋제출')
-    console.log(userArr)
+    await addDoc(collection(db, "userList"), {
+      id: shortId.generate(), name: name, age: age, email: email
+    });
+
   }
 
-
-
-
-
-
+  useEffect( () => {
+    const getList = async () => {
+      const q = query(collection(db, "userList"));
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach((doc) => {
+        userArr.push(doc.data());
+      });
+    }
+    getList();
+    console.log(userArr)
+  }, [])
 
 
   return (<>
@@ -108,8 +117,9 @@ function App() {
     <input id="userEmail" placeholder='Email' value={email} type='text' onChange={showEmail}></input>
     <input type="submit"></input>
   </form>
+
+  <div>
   <ul>
-    
     {userArr.map((item, i) => {return (<>
 
       <li key={item.id}>ID: {item.id}, 이름: {item.name}, 나이: {item.age}, 이메일: {item.email}</li>
@@ -123,9 +133,21 @@ function App() {
     </>)
     })
     }
-    
   </ul>
-  
+  </div>
+
+  {/* <div>
+    <ul>
+      {cloudArr.map(
+        (item, i) => {return (<>
+          <li key={item.id}>
+            ID: {item.id}, 이름: {item.name}, 나이: {item.age}, 이메일: {item.email}
+          </li>
+        
+        </>)}
+      )}
+    </ul>
+  </div> */}
   
   </>
   );
