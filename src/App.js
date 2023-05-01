@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import shortId from 'shortid'
+// import shortId from 'shortid'
 import { db } from './firebase'
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, getDocs, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
 // import { useParams } from 'react-router-dom'
 
 
-function ShowModInput({userArr, setUserArr, setShowing, newI}) {
+function ShowModInput({userArr, setUserArr, setShowing, newI, item}) {
   const [newName, setNewName] = useState("");
   const [newAge, setNewAge] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -24,14 +24,22 @@ function ShowModInput({userArr, setUserArr, setShowing, newI}) {
   const modUser = userArr.find( (item, i) => i === newI )
   
   
-  const newSubmit = (e) => {
+  const newSubmit = async (e) => {
     e.preventDefault();
     
     
     setUserArr(userArr.map( (item) => 
-      item.id === modUser.id ? { name: newName, age: newAge, email: newEmail } : item
+      item.id === modUser.id ? { name: newName, age: newAge, email: newEmail }
+        
+      : item
     ))
-    
+    const updateUser = doc(db, "userList", item.id)
+    await updateDoc(updateUser, {
+      name: newName,
+      age: newAge,
+      email: newEmail
+    })
+
     setShowing((prev)=>!prev)
     
     
@@ -56,7 +64,7 @@ function App() {
   const [email, setEmail] = useState("");
   const [userArr, setUserArr] = useState([]);
   const [showing, setShowing] = useState(false);
-  // const [cloudArr, setCloudArr] = useState([]);
+  
 
 
   const onClick = () => setShowing((prev) => !prev)
@@ -72,37 +80,46 @@ function App() {
   }
 
   const delUserBtn =  async (index) => {
-    setUserArr(userArr.filter((item, i) => i !== index))
-    await deleteDoc(doc(db, "userList", "DC"));
+    
+    const userDoc = doc(db, "userList", index.id);
+    
+    await deleteDoc(userDoc);
+
+    setUserArr(userArr.filter((item, i) => item.id !== index.id))
+    
+    
   }
-
-  
-  
-
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    // setUserArr([ { id: shortId.generate(), name: name, age: age, email: email }, ...userArr,])
+    
     setName("");
     setAge("");
     setEmail("");
     
     await addDoc(collection(db, "userList"), {
-      id: shortId.generate(), name: name, age: age, email: email
+      name: name, age: age, email: email
     });
+    setUserArr([]);
+    
+    await getList();
 
+    console.log(userArr)
+  }
+
+  const getList = async () => {
+    const q = query(collection(db, "userList"));
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+      
+      setUserArr([...userArr, {...doc.data(), id: doc.id}])
+    });
   }
 
   useEffect( () => {
-    const getList = async () => {
-      const q = query(collection(db, "userList"));
-      const querySnapshot = await getDocs(q);
-      querySnapshot.forEach((doc) => {
-        userArr.push(doc.data());
-      });
-    }
+    
     getList();
-    console.log(userArr)
+    
   }, [])
 
 
@@ -124,9 +141,9 @@ function App() {
 
       <li key={item.id}>ID: {item.id}, 이름: {item.name}, 나이: {item.age}, 이메일: {item.email}</li>
 
-      <button onClick={() => delUserBtn(i)}>delete</button>
+      <button onClick={() => delUserBtn(item)}>delete</button>
       
-      {showing ? <ShowModInput userArr={userArr} setUserArr={setUserArr} setShowing={setShowing} newI={i}/> : null}
+      {showing ? <ShowModInput userArr={userArr} setUserArr={setUserArr} setShowing={setShowing} newI={i} item={item}/> : null}
 
       <button onClick={onClick}>{showing ? "cancel" : "modify"}</button>
 
@@ -135,19 +152,6 @@ function App() {
     }
   </ul>
   </div>
-
-  {/* <div>
-    <ul>
-      {cloudArr.map(
-        (item, i) => {return (<>
-          <li key={item.id}>
-            ID: {item.id}, 이름: {item.name}, 나이: {item.age}, 이메일: {item.email}
-          </li>
-        
-        </>)}
-      )}
-    </ul>
-  </div> */}
   
   </>
   );
